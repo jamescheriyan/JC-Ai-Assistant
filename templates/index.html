@@ -1,31 +1,222 @@
 <!doctype html>
 <html>
 <head>
-  <title>Resume Q&A - James Cheriyan</title>
+  <title>Resume Chatbot - James Cheriyan</title>
   <style>
-    body { font-family: Arial, sans-serif; padding: 40px; background: #f8f8f8; }
-    .container { max-width: 600px; margin: auto; background: #fff; padding: 30px; border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.1); }
-    h1 { text-align: center; color: #333; }
-    input, textarea { width: 100%; padding: 10px; margin-top: 10px; font-size: 16px; }
-    button { margin-top: 10px; padding: 10px 20px; font-size: 16px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
-    .answer { margin-top: 20px; background: #e9ecef; padding: 15px; border-radius: 6px; }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #f0f2f5;
+      margin: 0; padding: 0;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+    }
+    .container {
+      max-width: 600px;
+      margin: auto;
+      background: white;
+      border-radius: 10px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+      display: flex;
+      flex-direction: column;
+      height: 90vh;
+    }
+    header {
+      padding: 1rem;
+      font-size: 1.5rem;
+      font-weight: bold;
+      border-bottom: 1px solid #ddd;
+      text-align: center;
+    }
+    #chat-window {
+      flex: 1;
+      padding: 1rem;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .message {
+      max-width: 80%;
+      padding: 12px 16px;
+      border-radius: 20px;
+      line-height: 1.4;
+      word-wrap: break-word;
+      white-space: pre-wrap;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    .user {
+      background: #007bff;
+      color: white;
+      align-self: flex-end;
+      border-bottom-right-radius: 0;
+    }
+    .bot {
+      background: #e5e5ea;
+      color: black;
+      align-self: flex-start;
+      border-bottom-left-radius: 0;
+    }
+    footer {
+      padding: 1rem;
+      border-top: 1px solid #ddd;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    #question-input {
+      padding: 10px;
+      font-size: 1rem;
+      flex-grow: 1;
+      border-radius: 20px;
+      border: 1px solid #ccc;
+      outline: none;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    #ask-button {
+      background: #007bff;
+      color: white;
+      border: none;
+      padding: 10px 16px;
+      font-size: 1rem;
+      border-radius: 20px;
+      cursor: pointer;
+      margin-left: 10px;
+      transition: background-color 0.3s ease;
+    }
+    #ask-button:disabled {
+      background: #6c757d;
+      cursor: not-allowed;
+    }
+    .input-row {
+      display: flex;
+      gap: 10px;
+    }
+    .examples {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .example-btn {
+      background: #f1f3f5;
+      border: none;
+      border-radius: 15px;
+      padding: 8px 12px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      color: #555;
+      transition: background-color 0.2s ease;
+    }
+    .example-btn:hover {
+      background-color: #007bff;
+      color: white;
+    }
+    .thinking {
+      font-style: italic;
+      color: #777;
+      margin-top: 5px;
+      align-self: flex-start;
+    }
   </style>
 </head>
 <body>
   <div class="container">
-    <h1>📄 Ask Me About My Resume</h1>
-    <form method="POST">
-      <label for="question">Enter your question:</label>
-      <input type="text" name="question" required placeholder="e.g. What are your technical skills?" />
-      <button type="submit">Ask</button>
-    </form>
+    <header>📄 Ask Me About My Resume</header>
 
-    {% if answer %}
-      <div class="answer">
-        <strong>Answer:</strong>
-        <p>{{ answer }}</p>
+    <div id="chat-window"></div>
+
+    <footer>
+      <div class="examples">
+        {% for question in starter_questions %}
+          <button class="example-btn" onclick="askQuestion('{{ question }}')">{{ question }}</button>
+        {% endfor %}
       </div>
-    {% endif %}
+
+      <div class="input-row">
+        <input type="text" id="question-input" placeholder="Type your question here..." autocomplete="off" />
+        <button id="ask-button" onclick="submitQuestion()">Ask</button>
+      </div>
+    </footer>
   </div>
+
+  <script>
+    const chatWindow = document.getElementById('chat-window');
+    const questionInput = document.getElementById('question-input');
+    const askButton = document.getElementById('ask-button');
+
+    let isThinking = false;
+
+    function addMessage(text, sender) {
+      const msgDiv = document.createElement('div');
+      msgDiv.classList.add('message', sender);
+      msgDiv.textContent = text;
+      chatWindow.appendChild(msgDiv);
+      chatWindow.scrollTop = chatWindow.scrollHeight;
+    }
+
+    function setThinking(on) {
+      if(on) {
+        addMessage("🤖 Thinking...", "bot");
+        isThinking = true;
+      } else {
+        // Remove last "Thinking..." message
+        let msgs = document.querySelectorAll('.message.bot');
+        for(let i = msgs.length - 1; i >= 0; i--) {
+          if(msgs[i].textContent === "🤖 Thinking...") {
+            msgs[i].remove();
+            break;
+          }
+        }
+        isThinking = false;
+      }
+    }
+
+    async function askQuestion(question) {
+      if(isThinking) return;
+      questionInput.value = question;
+      submitQuestion();
+    }
+
+    async function submitQuestion() {
+      const question = questionInput.value.trim();
+      if(!question) return;
+      addMessage(question, "user");
+      questionInput.value = "";
+      askButton.disabled = true;
+      setThinking(true);
+
+      try {
+        const response = await fetch('/ask', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({question})
+        });
+
+        const data = await response.json();
+
+        setThinking(false);
+        askButton.disabled = false;
+
+        if(data.answer) {
+          addMessage(data.answer, "bot");
+        } else if(data.error) {
+          addMessage("Error: " + data.error, "bot");
+        }
+      } catch (e) {
+        setThinking(false);
+        askButton.disabled = false;
+        addMessage("Failed to get response. Try again later.", "bot");
+      }
+    }
+
+    // Optional: submit on Enter key
+    questionInput.addEventListener("keypress", function(e) {
+      if(e.key === "Enter") {
+        e.preventDefault();
+        submitQuestion();
+      }
+    });
+  </script>
 </body>
 </html>
