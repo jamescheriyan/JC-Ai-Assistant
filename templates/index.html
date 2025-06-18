@@ -1,0 +1,31 @@
+<!doctype html>
+<html>
+<head>
+  <title>Resume Q&A - James Cheriyan</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 40px; background: #f8f8f8; }
+    .container { max-width: 600px; margin: auto; background: #fff; padding: 30px; border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.1); }
+    h1 { text-align: center; color: #333; }
+    input, textarea { width: 100%; padding: 10px; margin-top: 10px; font-size: 16px; }
+    button { margin-top: 10px; padding: 10px 20px; font-size: 16px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
+    .answer { margin-top: 20px; background: #e9ecef; padding: 15px; border-radius: 6px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>📄 Ask Me About My Resume</h1>
+    <form method="POST">
+      <label for="question">Enter your question:</label>
+      <input type="text" name="question" required placeholder="e.g. What are your technical skills?" />
+      <button type="submit">Ask</button>
+    </form>
+
+    {% if answer %}
+      <div class="answer">
+        <strong>Answer:</strong>
+        <p>{{ answer }}</p>
+      </div>
+    {% endif %}
+  </div>
+</body>
+</html>
